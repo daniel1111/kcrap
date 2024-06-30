@@ -42,6 +42,16 @@ const struct kcrap_data kcrap_get_extra_data()
 
 struct kcrap_context *kcrap_init(char *keytab, char *service)
 {
+    return kcrap_init_ex(keytab, service, NULL);
+}
+
+struct kcrap_context *kcrap_init_princ(char *keytab, char *princ_name) 
+{
+    return kcrap_init_ex(keytab, NULL, princ_name);
+}
+
+struct kcrap_context *kcrap_init_ex(char *keytab, char *service, char *princ_name)
+{
     struct kcrap_context *context;
     krb5_error_code retval;
     char *names[4];
@@ -68,10 +78,18 @@ struct kcrap_context *kcrap_init(char *keytab, char *service)
         }
 
         /* my princ */
-        if (service == NULL)
-            service = "host";
-        if ((retval = krb5_sname_to_principal(context->krb5_context, NULL, service, KRB5_NT_SRV_HST, &context->sprinc)))
-            break;
+        if (princ_name != NULL) 
+        {
+            if ((retval = krb5_parse_name(context->krb5_context, princ_name, &context->sprinc)))
+                break;
+        }
+        else
+        {
+          if (service == NULL)
+              service = "host";
+          if ((retval = krb5_sname_to_principal(context->krb5_context, NULL, service, KRB5_NT_SRV_HST, &context->sprinc)))
+              break;
+        }
 
         /* Get credentials for server */
         if ((retval = krb5_cc_resolve(context->krb5_context, "MEMORY:kcraplib", &context->ccache)))
